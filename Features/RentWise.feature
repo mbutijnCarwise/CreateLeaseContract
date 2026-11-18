@@ -4,15 +4,13 @@ Feature: RentWise rental agreement tablet signing
   I want to prepare a rental agreement for tablet signing and find it in DocWise
   So that I can verify the signature and document ID
 
-  # Recorded from the CW2 desktop application. Remove @ignore once the steps are implemented.
-  # A human enters the signing code directly in CW2 and completes signing in the smartphone app; never record the code.
   Background:
     Given CW2 is started and logged in as user MARTIN in administration CW2
     #And the window "CW2 - Hoofdmenu" is open and maximized on the primary screen
 
   @rentWiseTabletSigning
-  Scenario: Prepare a rental agreement for smartphone signing and verify it in DocWise
-    When I navigate to RentWise Activiteiten
+  Scenario: 01. Prepare a rental agreement for smartphone signing and verify it in DocWise (this scenario is based on 309220
+    When I navigate to RentWise Activiteiten in the modules
     #Then the window "CW2 - RentWise activiteiten" is shown
     When I open Verhuuractiviteiten in the navigation
     And I go to Overeenkomsten in the navigation

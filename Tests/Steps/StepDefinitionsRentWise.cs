@@ -5,32 +5,12 @@ using Reqnroll;
 namespace CreateLeaseContract.Tests.Steps;
 
 [Binding]
-public sealed class StepDefinitions
+public sealed class StepDefinitionsRentWise
 {
-    private static readonly string BaseUrl = "https://localhost:7095/login?returnUrl=%2F";
     private readonly IPage _page;
-    private IResponse? _response;
-    
-    public StepDefinitions(IPage page)
+    public StepDefinitionsRentWise(IPage page)
     {
         _page = page;
-    }
-
-    // Given steps go here
-    [Given("CW2 is started and logged in as user (.*) in administration (.*)")]
-    public async Task NavigateToWebsite(string user, string administration)
-    {
-        _response = await _page.GotoAsync(BaseUrl);
-        await _page.GetByLabel("Gebruikerscode").FillAsync(user);
-        await _page.GetByLabel("Wachtwoord").FillAsync(user);
-
-        await _page.GetByRole(AriaRole.Button, new() { Name = "Inloggen" }).ClickAsync();
-    }
-
-    [When("I navigate to RentWise Activiteiten")]
-    public async Task ClickActiviteitenInRibbonGroupRentWise()
-    {
-        await _page.GetByRole(AriaRole.Link, new() { Name = "RentWise" }).ClickAsync();
     }
 
     [When("I open (.*) in the navigation")]
@@ -63,5 +43,4 @@ public sealed class StepDefinitions
         }
 
     }
-
 }
