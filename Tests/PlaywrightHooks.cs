@@ -32,6 +32,7 @@ public sealed class PlaywrightHooks
     [AfterScenario]
     public async Task StopBrowser()
     {
+        Thread.Sleep(10000); // Wait for 10 seconds before closing the browser
         try
         {
             if (_browser is not null)
