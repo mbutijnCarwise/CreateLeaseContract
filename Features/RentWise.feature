@@ -8,13 +8,45 @@ Feature: RentWise rental agreement tablet signing
     Given CW2 is started and logged in as user MARTIN in administration CW2
     #And the window "CW2 - Hoofdmenu" is open and maximized on the primary screen
 
-  @rentWiseTabletSigning
-  Scenario: 01. Prepare a rental agreement for smartphone signing and verify it in DocWise (this scenario is based on 309220
+  Scenario: 01. Navigate to RentWise Activiteiten
     When I navigate to RentWise Activiteiten in the modules
-    #Then the window "CW2 - RentWise activiteiten" is shown
-    When I open Verhuuractiviteiten in the navigation
-    And I go to Overeenkomsten in the navigation
-    And I double-click a randomly selected vehicle agreement that hadn't been digitally signed
+    Then the window RentWise · Algemeen is shown
+    When I open Verhuuractiviteiten in the main menu
+    Then the following items are shown in the sub menu:
+      | Categorie                |
+      | Vandaag                  |
+      | Planning                 |
+      | Reserveringen            |
+      | Overeenkomsten           |
+      | Offertes                 |
+      | Beschikbare auto's       |
+      | Wagenpark                |
+      | Aflever- en retourbonnen |
+      | Uitgifte / Inname        |
+      | Overige functies         |
+
+
+  Scenario: 02. Make a new quotation
+    Given I have navigated to Offertes in the sub menu
+    When I click on button Toevoegen
+    Then the label Toevoegen offerte is present
+    # And I fill in these remaining fields: (these fields are not fillable yet)
+    #  | Telefoon  | Mobiel    | Email                   |
+    #  | 123456789 | 987654321 | mbu_debiteur@carwise.nl |
+    When I fill in these remaining fields:
+      | Huurder  | Datum opvolging | Datum/tijd vertrek | Datum/tijd retour | Categorie | Kenteken | Te rijden kilometers | Aanbetaling | Waarborg | Soort | Eenheid |Opmerking |
+      | DEBITEUR | 20-11-2026      | 20-11-2026 16:24   | 20-12-2026 16:00  | A         | G-108-DV | 250                  | 10000       | 5000     | SL    | MAAND20 | opmerking |
+    And I confirm the tariff message if it appears
+    And I click on button Opslaan
+    And I click on button OK
+    Then the label Offertes is present
+    And the new added quotation is present
+
+
+  @rentWiseTabletSigning
+  Scenario: 03. Prepare a rental agreement for smartphone signing and verify it in DocWise (this scenario is based on 309220
+    Given I have navigated to Overeenkomsten in the sub menu
+    When I double-click a randomly selected vehicle agreement that hadn't been digitally signed
     #Then the selected rental agreement is shown
     #When I enter "DEBITEUR" in the Huurder field
     #And I press Tab to resolve the debiteur

@@ -10,4 +10,4 @@ Feature: Bedrijfsparameters
   @bedrijfsparameters
   Scenario: 01. Manage bedrijfsparameters
     When I navigate to Bedrijfsparameters in the modules
-    #Then the window "CW2 - Bedrijfsparameters" is shown
+    Then the window Bedrijfsparameters is shown

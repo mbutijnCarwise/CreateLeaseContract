@@ -33,4 +33,15 @@ public class StepDefinitionsCommon
         await _page.GetByRole(AriaRole.Link, new() { Name = button }).ClickAsync();
     }
 
+    [Then(@"the window (.*) is shown")]
+    public async Task TheWindowIsShown(string windowName)
+    {
+        ILocator heading = _page.Locator("h1").First;
+        await heading.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+
+        string actualHeading = (await heading.InnerTextAsync()).Trim();
+        StringAssert.Contains(windowName, actualHeading,
+         $"Expected the page heading to contain '{windowName}', but found '{actualHeading}'.");
+    }
+
 }
