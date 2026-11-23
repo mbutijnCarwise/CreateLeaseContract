@@ -1,16 +1,16 @@
-using Microsoft.Playwright;
+﻿using Microsoft.Playwright;
 using NUnit.Framework;
 using Reqnroll;
 using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace CreateLeaseContract.Tests.Steps;
 
 [Binding]
 public sealed class StepDefinitionsRentWise 
 {
-    private const string ScreenshotDirectory = @"C:\Users\m.butijn\.copilot\session-state\fc325177-a56b-4cee-a3e4-d001b56f66ed\files";
     private readonly IPage _page;
-    private Quotation? _quotation;
+    private Quotation _quotation = null!;
 
     public StepDefinitionsRentWise(IPage page)
     {
@@ -34,54 +34,44 @@ public sealed class StepDefinitionsRentWise
     [When("I click on button (.*)")]
     public async Task ClickOnToevoegen(string buttonName)
     {
-        if (buttonName.Equals("OK", StringComparison.OrdinalIgnoreCase))
-        {
-            await CaptureScreenshotAsync("quotation-before-ok.png");
-        }
-
         await _page.GetByRole(AriaRole.Button, new() { Name = buttonName, Exact = true }).ClickAsync();
     }
 
-    [When("I confirm the tariff message if it appears")]
-    public async Task ConfirmTariffMessageIfItAppears()
+    /// <summary>
+    /// Closes every DevExpress message box (e.g. "Tarief: Geen geldig tarief gevonden") that appears within
+    /// <paramref name="timeoutMs"/>. The application can show only one at a time: when a second one is requested
+    /// while the first is open, it is never shown and the server waits for it forever, which later blocks Opslaan.
+    /// So call this after every field that can trigger such a message, before touching the next one.
+    /// The message normally appears within 250 ms, so <paramref name="timeoutMs"/> leaves about twice that as margin.
+    /// </summary>
+    private async Task CloseMessageDialogsAsync(int timeoutMs = 500)
     {
-        await CaptureScreenshotAsync("quotation-before-optional-confirmation.png");
-
-        ILocator okButton = _page.GetByRole(AriaRole.Dialog)
+        ILocator okButton = _page.Locator("dxbl-modal-dialog")
             .GetByRole(AriaRole.Button, new() { Name = "OK", Exact = true });
 
-        try
+        while (true)
         {
-            await okButton.WaitForAsync(new()
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            try
             {
-                State = WaitForSelectorState.Visible,
-                Timeout = 2000
-            });
-        }
-        catch (TimeoutException)
-        {
-            TestContext.Out.WriteLine("No visible OK button was found in a dialog.");
-            await CaptureScreenshotAsync("quotation-after-optional-confirmation.png");
-            return;
-        }
+                await okButton.First.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeoutMs });
+            }
+            catch (TimeoutException)
+            {
+                return;
+            }
 
-        await okButton.ClickAsync();
-        await CaptureScreenshotAsync("quotation-after-optional-confirmation.png");
+            TestContext.Out.WriteLine($"Closing message after {stopwatch.ElapsedMilliseconds} ms: {(await _page.Locator("dxbl-modal-dialog").First.InnerTextAsync()).Trim()}");
+            await okButton.First.ClickAsync();
+            await okButton.First.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
+        }
     }
 
-    private async Task CaptureScreenshotAsync(string fileName)
-    {
-        string path = Path.Combine(ScreenshotDirectory, fileName);
-        await _page.ScreenshotAsync(new() { Path = path, FullPage = true });
-        TestContext.Out.WriteLine($"Screenshot saved to {path}");
-    }
-
-    // [When("I fill in Huurder with (.*)")]
-    // public async Task FillInHuurder(string huurder)
+    // private async Task CaptureScreenshotAsync(string fileName)
     // {
-    //     ILocator huurderField = _page.GetByLabel("Huurder", new() { Exact = true });
-    //     await huurderField.FillAsync(huurder);
-    //     await huurderField.PressAsync("Tab");
+    //     string path = Path.Combine(ScreenshotDirectory, fileName);
+    //     await _page.ScreenshotAsync(new() { Path = path, FullPage = true });
+    //     TestContext.Out.WriteLine($"Screenshot saved to {path}");
     // }
 
     [When("I fill in these remaining fields:")]
@@ -90,7 +80,7 @@ public sealed class StepDefinitionsRentWise
         Assert.That(table.Rows, Has.Count.EqualTo(1), "Expected one quotation data row.");
         var columns = table.Rows[0];
 
-        Quotation quotation = new(
+        _quotation = new(
             columns["Huurder"],
             columns["Datum opvolging"],
             columns["Datum/tijd vertrek"],
@@ -100,49 +90,113 @@ public sealed class StepDefinitionsRentWise
             int.Parse(columns["Te rijden kilometers"], CultureInfo.InvariantCulture),
             decimal.Parse(columns["Aanbetaling"], CultureInfo.InvariantCulture),
             decimal.Parse(columns["Waarborg"], CultureInfo.InvariantCulture),
-            columns["Opmerking"]
-        );
-
-        _quotation = quotation;
+            columns["Opmerking"],
+            columns["Soort"],
+            columns["Eenheid"]);
 
         (string Label, string Value)[] fields =
         {
-            ("Huurder", quotation.Huurder),
-            ("Datum opvolging", quotation.DatumOpvolging),
-            ("Datum/tijd vertrek", quotation.DatumTijdVertrek),
-            ("Datum/tijd retour", quotation.DatumTijdRetour),
-            ("Categorie", quotation.Categorie),
-            ("Kenteken", quotation.Kenteken),
-            ("Te rijden kilometers", quotation.TeRijdenKilometers.ToString(CultureInfo.InvariantCulture)),
-            ("Aanbetaling", quotation.Aanbetaling.ToString(CultureInfo.InvariantCulture)),
-            ("Waarborg", quotation.Waarborg.ToString(CultureInfo.InvariantCulture)),
-            ("Opmerking", quotation.Opmerking)
-        };
+            ("Huurder", _quotation.Huurder),
+            ("Datum opvolging", _quotation.DatumOpvolging),
+            ("Datum/tijd vertrek", _quotation.DatumTijdVertrek),
+            ("Datum/tijd retour", _quotation.DatumTijdRetour),
+            ("Categorie", _quotation.Categorie),
+            ("Kenteken", _quotation.Kenteken),
+            ("Te rijden kilometers", _quotation.TeRijdenKilometers.ToString(CultureInfo.InvariantCulture)),
+            ("Aanbetaling", _quotation.Aanbetaling.ToString(CultureInfo.InvariantCulture)),
+            ("Waarborg", _quotation.Waarborg.ToString(CultureInfo.InvariantCulture)),
+            ("Opmerking", _quotation.Opmerking),
+            ("Soort", _quotation.Soort),
+            ("Eenheid", _quotation.Eenheid)};
 
         foreach ((string label, string value) in fields)
         {
             ILocator field = _page.GetByLabel(label, new() { Exact = true });
-            await field.FillAsync(value);
-            await field.PressAsync("Tab");
+            bool mayShowMessage = TariffFields.Contains(label);
+            if (DropdownFields.Contains(label))
+            {
+                // Soort and Eenheid exist for both Basis and Verlenging; the first one is Basis.
+                await field.First.ClickAsync();
+                await _page.GetByRole(AriaRole.Option, new() { Name = value, Exact = true }).ClickAsync();
+                await CloseMessageDialogsAsync();
+            }
+            else if (label.StartsWith("Datum/tijd"))
+            {
+                // The label only points at the date input; the time is a separate input next to it.
+                (string date, string time) = SplitDateTime(value);
+                await FillAndLeaveAsync(field, date, mayShowMessage);
+                await FillAndLeaveAsync(TimeInputOf(field), time, mayShowMessage);
+            }
+            else
+            {
+                await FillAndLeaveAsync(field, value, mayShowMessage);
+            }
         }
     }
 
-    [When("I double-click a randomly selected vehicle agreement that hadn't been digitally signed")]
-    public async Task DoubleClickRandomUnsignedVehicleAgreement()
+    // Fields whose change makes the application determine the tariff again (PagePrijsberekeningWaarden),
+    // which can show a "Tarief" message. Other fields need no wait for a message.
+    private static readonly HashSet<string> TariffFields = ["Huurder", "Datum/tijd vertrek", "Datum/tijd retour", "Categorie", "Kenteken", "Soort", "Eenheid"];
+
+    private static readonly HashSet<string> DropdownFields = ["Soort", "Eenheid"];
+
+    private async Task FillAndLeaveAsync(ILocator field, string value, bool mayShowMessage)
     {
-        for (int i = 2; i < 10; i++) // todo: replace 10 with the actual number of rows in the table
+        await field.FillAsync(value);
+        await field.PressAsync("Tab");
+        if (mayShowMessage)
+            await CloseMessageDialogsAsync();
+    }
+
+    private static ILocator TimeInputOf(ILocator dateField) =>
+        dateField.Locator("xpath=../..").Locator("input").Nth(1);
+
+    private static (string Date, string Time) SplitDateTime(string value)
+    {
+        string[] parts = value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        Assert.That(parts, Has.Length.EqualTo(2), $"Expected 'dd-MM-yyyy HH:mm' but got '{value}'.");
+        return (parts[0], parts[1]);
+    }
+
+    [When("I double-click the top digitally unsigned vehicle agreement")]
+    public async Task DoubleClickTopUnsignedAgreement()
+    {
+        ILocator grid = _page.Locator("dxbl-grid").Filter(new()
         {
-            ILocator agreement = _page.Locator($"xpath=//html/body/div[1]/div/main/div/dxbl-drawer/div/div/div/dxbl-tabs/div/div[2]/div/div/section/div/div/dxbl-grid/dxbl-virtual-scroll-viewer/div/table/tbody/tr[{i}]/td[5]");
-            string? digitallySigned = await agreement.TextContentAsync();
-            TestContext.Out.WriteLine($"Text content of agreement at row {i-1}: {digitallySigned}");
-            
-            if (string.IsNullOrEmpty(digitallySigned))
-            {
-                TestContext.WriteLine($"Found unsigned agreement at row {i-1}");
-                await agreement.DblClickAsync();
-                break;
-            }
+            Has = _page.GetByRole(AriaRole.Columnheader, new() { Name = "Digitaal ondertekenen", Exact = true })
+        });
+        int nummerIndex = await ColumnIndexAsync(grid, "Nummer");
+        int signedIndex = await ColumnIndexAsync(grid, "Digitaal ondertekenen");
+
+        // The grid loads its rows asynchronously; wait until real data (an agreement number) is shown.
+        ILocator nummerCells = grid.Locator($"tbody tr > td:nth-child({nummerIndex + 1})");
+        await nummerCells.Filter(new() { HasTextRegex = new Regex(@"^\s*\d+\s*$") }).First
+            .WaitForAsync(new() { State = WaitForSelectorState.Visible });
+
+        IReadOnlyList<ILocator> rows = await grid.Locator("tbody tr").AllAsync();
+        foreach (ILocator row in rows)
+        {
+            ILocator cells = row.Locator("td");
+            if (await cells.CountAsync() <= signedIndex)
+                continue;
+
+            string nummer = (await cells.Nth(nummerIndex).InnerTextAsync()).Trim();
+            string signed = (await cells.Nth(signedIndex).InnerTextAsync()).Trim();
+            if (nummer.Length == 0 || signed.Length != 0)
+                continue;
+
+            TestContext.Out.WriteLine($"Opening unsigned agreement {nummer}");
+            await cells.Nth(signedIndex).DblClickAsync();
+            return;
         }
+
+        Assert.Fail("No digitally unsigned agreement found in the loaded rows of Overeenkomsten.");
+    }
+
+    private static async Task<int> ColumnIndexAsync(ILocator grid, string header)
+    {
+        ILocator columnHeader = grid.GetByRole(AriaRole.Columnheader, new() { Name = header, Exact = true }).First;
+        return await columnHeader.EvaluateAsync<int>("th => th.cellIndex");
     }
 
     [Then("the following items are shown in the sub menu:")]
@@ -167,16 +221,66 @@ public sealed class StepDefinitionsRentWise
         StringAssert.Contains(label, actualTitle);
     }
 
+    [Then("the new quotation has been given a number")]
+    public async Task TheNewQuotationHasBeenGivenANumber()
+    {
+        // After the first Opslaan the tab is renamed from "Toevoegen offerte" to "Wijzigen offerte {nummer}".
+        ILocator title = _page.GetByRole(AriaRole.Heading, new() { NameRegex = new Regex(@"^Wijzigen offerte \d+$") });
+        await title.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+
+        string text = (await title.InnerTextAsync()).Trim();
+        _quotation.Nummer = int.Parse(text["Wijzigen offerte ".Length..], CultureInfo.InvariantCulture);
+        TestContext.Out.WriteLine($"New quotation number: {_quotation.Nummer}");
+    }
+
     [Then("the new added quotation is present")]
     public async Task TheNewAddedQuotationIsPresent()
     {
-        Quotation quotation = _quotation ?? throw new InvalidOperationException("Quotation data has not been entered.");
-        ILocator kentekenCell = _page.GetByRole(AriaRole.Cell, new() { Name = quotation.Kenteken, Exact = true });
+        ILocator row = await FindNewQuotationRowAsync();
 
-        await kentekenCell.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+        async Task<string> CellOf(string header)
+        {
+            ILocator columnHeader = _page.GetByRole(AriaRole.Columnheader, new() { Name = header, Exact = true });
+            Assert.That(await columnHeader.CountAsync(), Is.EqualTo(1), $"Column {header} not found in the Offertes list.");
+            // The grid has helper columns, so map the header to the cell by its DOM position.
+            int cellIndex = await columnHeader.EvaluateAsync<int>("th => th.cellIndex");
+            return (await row.Locator("td").Nth(cellIndex).InnerTextAsync()).Trim();
+        }
 
-        string savedKenteken = (await kentekenCell.InnerTextAsync()).Trim();
-        Assert.That(savedKenteken, Is.EqualTo(quotation.Kenteken));
+        string nummer = await CellOf("Nummer");
+        string categorie = await CellOf("Categorie");
+        string kenteken = await CellOf("Kenteken");
+        string huurder = await CellOf("Huurder");
+        string vertrek = await CellOf("Vertrek");
+        TestContext.Out.WriteLine($"List row: {nummer} | {categorie} | {kenteken} | {huurder} | {vertrek}");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(nummer, Is.EqualTo(_quotation.Nummer!.Value.ToString(CultureInfo.InvariantCulture)), "Nummer");
+            Assert.That(categorie, Is.EqualTo(_quotation.Categorie), "Categorie");
+            Assert.That(kenteken, Is.EqualTo(_quotation.Kenteken), "Kenteken");
+            // The list shows the renter's name (e.g. "mbu_debiteur"), not the code that was typed.
+            Assert.That(huurder, Does.Contain(_quotation.Huurder).IgnoreCase, "Huurder");
+            // The list shows only the departure date, without the time.
+            Assert.That(vertrek, Is.EqualTo(SplitDateTime(_quotation.DatumTijdVertrek).Date), "Vertrek");
+        });
+    }
+
+    /// <summary>Filters the Offertes grid on the number of the new quotation and returns its row.</summary>
+    private async Task<ILocator> FindNewQuotationRowAsync()
+    {
+        Assert.That(_quotation.Nummer, Is.Not.Null, "The quotation number was not read after the first save.");
+        string nummer = _quotation.Nummer!.Value.ToString(CultureInfo.InvariantCulture);
+
+        ILocator filter = _page.GetByLabel("Filter Nummer", new() { Exact = true });
+        await filter.FillAsync(nummer);
+        await filter.PressAsync("Enter");
+
+        ILocator row = _page.GetByRole(AriaRole.Row)
+            .Filter(new() { Has = _page.GetByRole(AriaRole.Gridcell, new() { Name = nummer, Exact = true }) })
+            .Filter(new() { Has = _page.GetByRole(AriaRole.Gridcell, new() { Name = _quotation.Kenteken, Exact = true }) });
+        await row.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+        return row;
     }
 
 }

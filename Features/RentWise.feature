@@ -34,11 +34,11 @@ Feature: RentWise rental agreement tablet signing
     #  | Telefoon  | Mobiel    | Email                   |
     #  | 123456789 | 987654321 | mbu_debiteur@carwise.nl |
     When I fill in these remaining fields:
-      | Huurder  | Datum opvolging | Datum/tijd vertrek | Datum/tijd retour | Categorie | Kenteken | Te rijden kilometers | Aanbetaling | Waarborg | Soort | Eenheid |Opmerking |
-      | DEBITEUR | 20-11-2026      | 20-11-2026 16:24   | 20-12-2026 16:00  | A         | G-108-DV | 250                  | 10000       | 5000     | SL    | MAAND20 | opmerking |
-    And I confirm the tariff message if it appears
+      | Huurder  | Datum opvolging | Datum/tijd vertrek | Datum/tijd retour | Categorie | Kenteken | Te rijden kilometers | Aanbetaling | Waarborg | Opmerking | Soort | Eenheid |
+      | DEBITEUR | 20-11-2026      | 20-11-2026 16:24   | 20-12-2026 16:00  | A         | G-108-DV | 250                  | 10000       | 5000     | opmerking | SL    | MAAND20 |
     And I click on button Opslaan
-    And I click on button OK
+    Then the new quotation has been given a number
+    When I click on button OK
     Then the label Offertes is present
     And the new added quotation is present
 
@@ -46,7 +46,7 @@ Feature: RentWise rental agreement tablet signing
   @rentWiseTabletSigning
   Scenario: 03. Prepare a rental agreement for smartphone signing and verify it in DocWise (this scenario is based on 309220
     Given I have navigated to Overeenkomsten in the sub menu
-    When I double-click a randomly selected vehicle agreement that hadn't been digitally signed
+    When I double-click the top digitally unsigned vehicle agreement
     #Then the selected rental agreement is shown
     #When I enter "DEBITEUR" in the Huurder field
     #And I press Tab to resolve the debiteur
