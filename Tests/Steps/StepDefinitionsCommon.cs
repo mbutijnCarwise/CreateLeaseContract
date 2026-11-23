@@ -27,11 +27,20 @@ public class StepDefinitionsCommon
         await _page.GetByRole(AriaRole.Button, new() { Name = "Inloggen" }).ClickAsync();
     }
 
-    [When("I navigate to (.*) Activiteiten in the modules")]
-    public async Task NavigateInModules(string button)
+    [When(@"I navigate to (.*) in the modules")]
+    public async Task NavigateInModules(string moduleName)
     {
-        await _page.GetByRole(AriaRole.Link, new() { Name = button }).ClickAsync();
+        if (moduleName.EndsWith(" Activiteiten", StringComparison.Ordinal))
+            moduleName = moduleName[..^" Activiteiten".Length];
+        else if (moduleName.EndsWith(" Algemeen", StringComparison.Ordinal))
+            moduleName = moduleName[..^" Algemeen".Length];
+
+        await _page.GetByRole(AriaRole.Link, new() { Name = moduleName }).ClickAsync();
     }
+
+    [When("I open (.*) in the main menu")]
+    public Task OpenInNavigation(string item) =>
+        NavigationActions.OpenInNavigation(_page, item);
 
     [Then(@"the window (.*) is shown")]
     public async Task TheWindowIsShown(string windowName)

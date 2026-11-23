@@ -21,14 +21,8 @@ public sealed class StepDefinitionsRentWise
     public async Task OpenOvereenkomstenInNavigation(string subItem)
     {
         await _page.GetByRole(AriaRole.Link, new() { Name = "RentWise" }).ClickAsync();
-        await OpenInNavigation("Verhuuractiviteiten");
+        await NavigationActions.OpenInNavigation(_page, "Verhuuractiviteiten");
         await _page.GetByRole(AriaRole.Button, new() { Name = subItem, Exact = true }).ClickAsync();
-    }
-
-    [When("I open (.*) in the main menu")]
-    public async Task OpenInNavigation(string item)
-    {
-        await _page.GetByText(item).ClickAsync();
     }
 
     [When("I click on button (.*)")]
@@ -66,13 +60,6 @@ public sealed class StepDefinitionsRentWise
             await okButton.First.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
         }
     }
-
-    // private async Task CaptureScreenshotAsync(string fileName)
-    // {
-    //     string path = Path.Combine(ScreenshotDirectory, fileName);
-    //     await _page.ScreenshotAsync(new() { Path = path, FullPage = true });
-    //     TestContext.Out.WriteLine($"Screenshot saved to {path}");
-    // }
 
     [When("I fill in these remaining fields:")]
     public async Task FillInTheseFields(Table table)
