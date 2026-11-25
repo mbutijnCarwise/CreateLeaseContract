@@ -45,12 +45,10 @@ public class StepDefinitionsCommon
     [Then(@"the window (.*) is shown")]
     public async Task TheWindowIsShown(string windowName)
     {
-        ILocator heading = _page.Locator("h1").First;
-        await heading.WaitForAsync(new() { State = WaitForSelectorState.Visible });
-
-        string actualHeading = (await heading.InnerTextAsync()).Trim();
-        StringAssert.Contains(windowName, actualHeading,
-         $"Expected the page heading to contain '{windowName}', but found '{actualHeading}'.");
+        // Web-first assertion: retries until the (new) page heading contains the text,
+        // avoiding races where the previous page's heading is still visible.
+        ILocator heading = _page.Locator("h1:visible").First;
+        await Assertions.Expect(heading).ToContainTextAsync(windowName.Trim());
     }
 
 }

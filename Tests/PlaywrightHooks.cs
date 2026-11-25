@@ -16,6 +16,10 @@ public sealed class PlaywrightHooks
         _objectContainer = objectContainer;
     }
 
+    [BeforeTestRun]
+    public static void ConfigureAssertions() =>
+        Assertions.SetDefaultExpectTimeout(15_000);
+
     [BeforeScenario]
     public async Task StartBrowser()
     {
