@@ -30,7 +30,7 @@ public sealed class PlaywrightHooks
         });
 
         IPage page = await _browser.NewPageAsync();
-        _objectContainer.RegisterInstanceAs(page);
+        _objectContainer.RegisterInstanceAs(new ActivePage(page));
     }
 
     [AfterScenario]

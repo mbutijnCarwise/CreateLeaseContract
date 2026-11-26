@@ -9,26 +9,41 @@ namespace CreateLeaseContract.Tests.Steps;
 [Binding]
 public sealed class StepDefinitionsRentWise 
 {
-    private readonly IPage _page;
+    protected readonly ActivePage _activePage;
+    private IPage _page => _activePage.Page;
     private Quotation _quotation = null!;
+    private Reservation _reservation = null!;
 
-    public StepDefinitionsRentWise(IPage page)
+    public StepDefinitionsRentWise(ActivePage page)
     {
-        _page = page;
+        _activePage = page;
     }
 
-    [Given("I have navigated to (.*) in the sub menu")]
+    [Given("I have navigated to (.*) in the sub menu of Verhuuractiviteiten")]
     public async Task OpenOvereenkomstenInNavigation(string subItem)
     {
-        await _page.GetByRole(AriaRole.Link, new() { Name = "RentWise" }).ClickAsync();
+        _activePage.Page = await _page.RunAndWaitForPopupAsync(() => _page.GetByRole(AriaRole.Link, new() { Name = "RentWise" }).ClickAsync());
+
         await NavigationActions.OpenInNavigation(_page, "Verhuuractiviteiten");
-        await _page.GetByRole(AriaRole.Button, new() { Name = subItem, Exact = true }).ClickAsync();
+        await _page.GetByRole(AriaRole.Button, new() { Name = subItem, Exact = true }).First.ClickAsync();
     }
 
     [When("I click on button (.*)")]
     public async Task ClickOnToevoegen(string buttonName)
     {
-        await _page.GetByRole(AriaRole.Button, new() { Name = buttonName, Exact = true }).ClickAsync();
+        await _page.GetByRole(AriaRole.Button, new() { Name = buttonName, Exact = true }).First.ClickAsync();
+    }
+
+    [When("I make a new reservation")]
+    public async Task MakeNewReservation()
+    {
+        await _page.GetByRole(AriaRole.Button, new() { Name = "Nieuwe reservering", Exact = true }).First.ClickAsync();
+    }
+
+    [When("I click on tab (.*)")]
+    public async Task ClickOnTabHuurderDebiteur(string tabName)
+    {
+        await _page.GetByRole(AriaRole.Tab, new() { Name = tabName }).First.ClickAsync();
     }
 
     /// <summary>
@@ -40,8 +55,7 @@ public sealed class StepDefinitionsRentWise
     /// </summary>
     private async Task CloseMessageDialogsAsync(int timeoutMs = 500)
     {
-        ILocator okButton = _page.Locator("dxbl-modal-dialog")
-            .GetByRole(AriaRole.Button, new() { Name = "OK", Exact = true });
+        ILocator okButton = _page.Locator("dxbl-modal-dialog").GetByRole(AriaRole.Button, new() { Name = "OK", Exact = true });
 
         while (true)
         {
@@ -61,7 +75,7 @@ public sealed class StepDefinitionsRentWise
         }
     }
 
-    [When("I fill in these remaining fields:")]
+    [When("I fill in these remaining fields:")] // todo: specify in binding that this method is only for the quotation fields
     public async Task FillInTheseFields(Table table)
     {
         Assert.That(table.Rows, Has.Count.EqualTo(1), "Expected one quotation data row.");
@@ -119,6 +133,62 @@ public sealed class StepDefinitionsRentWise
                 await FillAndLeaveAsync(field, value, mayShowMessage);
             }
         }
+    }
+
+    [When("I fill in these fields in the Voorwaarden tab:")]
+    public async Task FillInFieldsInVoorwaardenTab(Table table)
+    {
+        Assert.That(table.Rows, Has.Count.EqualTo(1), "Expected one Voorwaarden data row.");
+        var row = table.Rows[0];
+
+        ILocator soort = _page.GetByLabel("Basis Soort", new() { Exact = true });
+        await soort.ClickAsync();
+        await FillAndLeaveAsync(soort, row["Soort"], true);
+        _reservation.Soort = row["Soort"];
+
+        ILocator eenheid = _page.GetByLabel("Basis Eenheid", new() { Exact = true });
+        await eenheid.ClickAsync();
+        await FillAndLeaveAsync(eenheid, row["Eenheid"], false);
+        _reservation.Eenheid = row["Eenheid"];
+    }
+
+    [When("I select the first vehicle")]
+    public async Task SelectFirstVehicle()
+    {
+        ILocator availableCars = _page.GetByRole(AriaRole.Region, new() { Name = "Beschikbare auto's", Exact = true });
+        ILocator firstVehicle = availableCars.GetByRole(AriaRole.Treegrid)
+            .Locator("tbody tr[role='row'][data-visible-index]").First;
+
+        await firstVehicle.Locator("td[data-field='kenteken']").ClickAsync();
+        await Assertions.Expect(availableCars.GetByRole(AriaRole.Button, new() { Name = "Nieuwe reservering", Exact = true }))
+            .ToBeEnabledAsync();
+
+        async Task<string> VehicleValueAsync(string field)
+        {
+            ILocator cell = firstVehicle.Locator($"td[data-field='{field}']");
+            await Assertions.Expect(cell).Not.ToBeEmptyAsync();
+            return (await cell.InnerTextAsync()).Trim();
+        }
+
+        string categorieText = await VehicleValueAsync("categorieId");
+        if (!Enum.TryParse(categorieText, ignoreCase: true, out Categorie categorie)
+            || !string.Equals(categorie.ToString(), categorieText, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException($"Unknown vehicle category: '{categorieText}'.");
+
+        string kenteken = await VehicleValueAsync("kenteken");
+        string autoOmschrijving = await VehicleValueAsync("cOmschrijving");
+        string fuelText = await VehicleValueAsync("brandstofSoort");
+        if (!Enum.TryParse(fuelText, ignoreCase: true, out Brandstof brandstof) || !Enum.IsDefined(brandstof))
+            throw new InvalidOperationException($"Unknown vehicle fuel type: '{fuelText}'.");
+
+        _reservation = new Reservation(categorie, kenteken, autoOmschrijving, brandstof);
+    }
+
+    [When("I fill in the Huurder field with (.*)")]
+    public async Task FillInHuurderField(string huurder)
+    {
+        IList<ILocator> huurderFields = (IList<ILocator>) await _page.GetByLabel("Huurder", new() { Exact = true }).AllAsync();
+        await FillAndLeaveAsync(huurderFields[1], huurder, true);
     }
 
     // Fields whose change makes the application determine the tariff again (PagePrijsberekeningWaarden),
@@ -253,6 +323,13 @@ public sealed class StepDefinitionsRentWise
         });
     }
 
+    [Then("this new reservation should be vissible in the table")]
+    public async Task ThenThisNewReservationShouldBeVissibleInTheTable()
+    {
+        ILocator row = await FindNewReservationRowAsync();
+        Assert.That(await row.CountAsync(), Is.EqualTo(1), "The new reservation row is not visible in the table.");
+    }
+
     /// <summary>Filters the Offertes grid on the number of the new quotation and returns its row.</summary>
     private async Task<ILocator> FindNewQuotationRowAsync()
     {
@@ -266,6 +343,22 @@ public sealed class StepDefinitionsRentWise
         ILocator row = _page.GetByRole(AriaRole.Row)
             .Filter(new() { Has = _page.GetByRole(AriaRole.Gridcell, new() { Name = nummer, Exact = true }) })
             .Filter(new() { Has = _page.GetByRole(AriaRole.Gridcell, new() { Name = _quotation.Kenteken, Exact = true }) });
+        await row.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+        return row;
+    }
+
+    private async Task<ILocator> FindNewReservationRowAsync()
+    {
+        Assert.That(_reservation.Nummer, Is.Not.Null, "The reservation number was not read after the first save.");
+        string nummer = _reservation.Nummer;
+
+        ILocator filter = _page.GetByLabel("Filter Nummer", new() { Exact = true });
+        await filter.FillAsync(nummer);
+        await filter.PressAsync("Enter");
+
+        ILocator row = _page.GetByRole(AriaRole.Row)
+            .Filter(new() { Has = _page.GetByRole(AriaRole.Gridcell, new() { Name = nummer, Exact = true }) })
+            .Filter(new() { Has = _page.GetByRole(AriaRole.Gridcell, new() { Name = _reservation.Kenteken, Exact = true }) });
         await row.WaitForAsync(new() { State = WaitForSelectorState.Visible });
         return row;
     }

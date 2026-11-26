@@ -1,0 +1,39 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - text: For evaluation purposes only. Redistribution prohibited. Please
+      - link "register" [ref=e4] [cursor=pointer]:
+        - /url: https://www.devexpress.com/go/Licensing_Documentation_Blazor.aspx
+      - text: an existing license or
+      - link "purchase a new license" [ref=e5] [cursor=pointer]:
+        - /url: https://go.devexpress.com/Licensing_Installer_Watermark_Blazor.aspx
+      - text: "to continue use of DevExpress product libraries (v25.2.4.0). Included in Subscriptions: Universal, DXperience, ASP.NET"
+    - generic [ref=e6] [cursor=pointer]
+  - main [ref=e9]:
+    - generic [ref=e10]:
+      - img "CarWise Group" [ref=e11]
+      - generic [ref=e12]:
+        - heading "Inloggen" [level=1] [ref=e13]
+        - generic [ref=e14]: Taalkeuze
+        - combobox "Taalkeuze" [ref=e16] [cursor=pointer]:
+          - option "Nederlands" [selected]
+          - option "English"
+          - option "Deutsch"
+          - option "Français"
+          - option "Nederlands (België)"
+      - status [ref=e17]: "In dit browservenster nog ingelogd:"
+      - list [ref=e18]:
+        - listitem [ref=e19]:
+          - link "MARTIN CW2" [ref=e20] [cursor=pointer]:
+            - /url: /u/0/a/CW2/
+            - generic [ref=e21]: MARTIN
+            - generic [ref=e22]: CW2
+      - paragraph [ref=e23]: Of log hieronder in met een ander account.
+      - generic [ref=e24]:
+        - generic [ref=e25]: Gebruikerscode
+        - textbox "Gebruikerscode" [active] [ref=e27]
+      - generic [ref=e28]:
+        - generic [ref=e29]: Wachtwoord
+        - textbox "Wachtwoord" [ref=e31]
+      - button "Inloggen" [ref=e32]
+    - paragraph [ref=e34]: Copyright (c) 2013-2026 CarWise Information Services B.V.

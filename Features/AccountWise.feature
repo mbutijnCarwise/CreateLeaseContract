@@ -14,7 +14,7 @@ Feature: AccountWise
   Scenario: 02. Verify AccountWise Debiteuren
     Given I have navigated to Debiteuren in the main menu of AccountWise
     Then I should see the following items are in the Debiteuren sub menu of AccountWise
-      | Menu item               |
+      | Menu item                 |
       | Startpagina               |
       | Autorisatie debiteuren    |
       | Kredietcheck              |

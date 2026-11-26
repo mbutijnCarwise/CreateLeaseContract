@@ -26,8 +26,8 @@ Feature: RentWise rental agreement tablet signing
       | Overige functies         |
 
 
-  Scenario: 02. Make a new quotation
-    Given I have navigated to Offertes in the sub menu
+  Scenario: 02. Make a new quotation in Offertes
+    Given I have navigated to Offertes in the sub menu of Verhuuractiviteiten
     When I click on button Toevoegen
     Then the label Toevoegen offerte is present
     # And I fill in these remaining fields: (these fields are not fillable yet)
@@ -43,9 +43,31 @@ Feature: RentWise rental agreement tablet signing
     And the new added quotation is present
 
 
+  Scenario: 03. Make a new reservation in Beschikbare auto's
+    Given I have navigated to Beschikbare auto's in the sub menu of Verhuuractiviteiten
+    Then the label Beschikbare auto's is present
+    When I select the first vehicle
+    And I make a new reservation
+    And I click on tab Huurder / debiteur
+    And I fill in the Huurder field with DEBITEUR
+    And I click on tab Voorwaarden
+    And I fill in these fields in the Voorwaarden tab:
+      | Soort | Eenheid |
+      | SL    | MAAND20 |
+    And I click on button Toepassen
+    And I click on button Nee
+    And I click on button Opslaan
+    And I click on button Reserveringen
+    Then this new reservation should be vissible in the table
+    
+
+  #Scenario: 04. Navigate in Wagenpark
+  #  Given I have navigated to Wagenpark in the sub menu of Verhuuractiviteiten
+  #  When I click on button Wagenpark
+
   @rentWiseTabletSigning
-  Scenario: 03. Prepare a rental agreement for smartphone signing and verify it in DocWise (this scenario is based on 309220
-    Given I have navigated to Overeenkomsten in the sub menu
+  Scenario: 04. Prepare a rental agreement for smartphone signing and verify it in DocWise (this scenario is based on 309220
+    Given I have navigated to Overeenkomsten in the sub menu of Verhuuractiviteiten
     When I double-click the top digitally unsigned vehicle agreement
     #Then the selected rental agreement is shown
     #When I enter "DEBITEUR" in the Huurder field

@@ -7,11 +7,12 @@ namespace CreateLeaseContract.Tests.Steps;
 [Binding]
 public class StepDefinitionsCRM
 {
-    private readonly IPage _page;
+    protected readonly ActivePage _activePage;
+    private IPage _page => _activePage.Page;
 
-    public StepDefinitionsCRM(IPage page)
+    public StepDefinitionsCRM(ActivePage page)
     {
-        _page = page;
+        _activePage = page;
     }
 
     [Then(@"the following menu items are present")]

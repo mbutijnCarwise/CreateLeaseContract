@@ -8,11 +8,12 @@ namespace CreateLeaseContract.Tests.Steps;
 public class StepDefinitionsCommon
 {
     private static readonly string BaseUrl = "https://localhost:7095/login?returnUrl=%2F";
-    protected readonly IPage _page;
+    protected readonly ActivePage _activePage;
+    private IPage _page => _activePage.Page;
     
-    public StepDefinitionsCommon(IPage page)
+    public StepDefinitionsCommon(ActivePage page)
     {
-        _page = page;
+        _activePage = page;
     }
 
     [Given("CW2 is started and logged in as user (.*) in administration (.*)")]
@@ -35,7 +36,12 @@ public class StepDefinitionsCommon
         else if (moduleName.EndsWith(" Algemeen", StringComparison.Ordinal))
             moduleName = moduleName[..^" Algemeen".Length];
 
-        await _page.GetByRole(AriaRole.Link, new() { Name = moduleName }).ClickAsync();
+        // await _page.GetByRole(AriaRole.Link, new() { Name = moduleName }).ClickAsync();
+
+        // IPage newTab = await _page.RunAndWaitForPopupAsync(() => _page.GetByRole(AriaRole.Link, new() { Name = moduleName }).ClickAsync());
+
+        _activePage.Page = await _page.RunAndWaitForPopupAsync(() => _page.GetByRole(AriaRole.Link, new() { Name = moduleName }).ClickAsync());
+
     }
 
     [When("I open (.*) in the main menu")]

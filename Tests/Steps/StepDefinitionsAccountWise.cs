@@ -6,11 +6,12 @@ namespace CreateLeaseContract.Tests.Steps;
 [Binding]
 public sealed class StepDefinitionsAccountWise
 {
-    private readonly IPage _page;
+    protected readonly ActivePage _activePage;
+    private IPage _page => _activePage.Page;
     
-    public StepDefinitionsAccountWise(IPage page)
+    public StepDefinitionsAccountWise(ActivePage page)
     {
-        _page = page;
+        _activePage = page;
     }
 
     [Given("I have navigated to (.*) in the main menu of AccountWise")]

@@ -1,0 +1,139 @@
+- generic [ref=f1e1]:
+  - generic [ref=f1e2]:
+    - generic [ref=f1e3]:
+      - text: For evaluation purposes only. Redistribution prohibited. Please
+      - link "register" [ref=f1e4] [cursor=pointer]:
+        - /url: https://www.devexpress.com/go/Licensing_Documentation_Blazor.aspx
+      - text: an existing license or
+      - link "purchase a new license" [ref=f1e5] [cursor=pointer]:
+        - /url: https://go.devexpress.com/Licensing_Installer_Watermark_Blazor.aspx
+      - text: "to continue use of DevExpress product libraries (v25.2.4.0). Included in Subscriptions: Universal, DXperience, ASP.NET"
+    - generic [ref=f1e6] [cursor=pointer]
+  - generic [ref=f1e9]:
+    - banner [ref=f1e10]:
+      - generic [ref=f1e11]:
+        - link [ref=f1e12] [cursor=pointer]:
+          - /url: ./
+          - img "Start" [ref=f1e13]
+        - button "Modules" [ref=f1e15] [cursor=pointer]
+      - generic [ref=f1e28]:
+        - generic [ref=f1e29]: CW2
+        - button "Help" [ref=f1e31] [cursor=pointer]:
+          - generic [aria-hidden] [ref=f1e32]: "?"
+          - text: Help
+        - button "MARTIN" [ref=f1e36] [cursor=pointer]
+    - main [ref=f1e40]:
+      - generic [ref=f1e46]:
+        - generic:
+          - tablist [ref=f1e50]:
+            - tab "Start" [selected] [ref=f1e51]
+          - tabpanel "Start" [ref=f1e56]:
+            - generic [ref=f1e57]:
+              - heading "Welkom, Martin" [active] [level=1] [ref=f1e59]
+              - region "Uw modules" [ref=f1e60]:
+                - heading "Uw modules" [level=2] [ref=f1e61]
+                - list [ref=f1e62]:
+                  - listitem [ref=f1e63]:
+                    - link "Bedrijfsparameters , opent in een ander tabblad Instellingen van de administratie en de correspondentie" [ref=f1e64] [cursor=pointer]:
+                      - /url: bedrijfsparameters
+                      - generic [ref=f1e71]:
+                        - generic [ref=f1e72]:
+                          - text: Bedrijfsparameters
+                          - generic [ref=f1e73]: ", opent in een ander tabblad"
+                        - generic [ref=f1e74]: Instellingen van de administratie en de correspondentie
+                  - listitem [ref=f1e75]:
+                    - 'link "AccountWise , opent in een ander tabblad Financiële administratie: grootboek, debiteuren en crediteuren" [ref=f1e76] [cursor=pointer]':
+                      - /url: accountwise
+                      - generic [ref=f1e82]:
+                        - generic [ref=f1e83]:
+                          - text: AccountWise
+                          - generic [ref=f1e84]: ", opent in een ander tabblad"
+                        - generic [ref=f1e85]: "Financiële administratie: grootboek, debiteuren en crediteuren"
+                  - listitem [ref=f1e86]:
+                    - 'link "LeaseWise , opent in een ander tabblad Lease: stamgegevens, contracten en activiteiten" [ref=f1e87] [cursor=pointer]':
+                      - /url: leasewise
+                      - generic [ref=f1e92]:
+                        - generic [ref=f1e93]:
+                          - text: LeaseWise
+                          - generic [ref=f1e94]: ", opent in een ander tabblad"
+                        - generic [ref=f1e95]: "Lease: stamgegevens, contracten en activiteiten"
+                  - listitem [ref=f1e96]:
+                    - 'link "RentWise , opent in een ander tabblad Verhuur: stamgegevens, activiteiten en planning" [ref=f1e97] [cursor=pointer]':
+                      - /url: rentwise
+                      - generic [ref=f1e104]:
+                        - generic [ref=f1e105]:
+                          - text: RentWise
+                          - generic [ref=f1e106]: ", opent in een ander tabblad"
+                        - generic [ref=f1e107]: "Verhuur: stamgegevens, activiteiten en planning"
+                  - listitem [ref=f1e108]:
+                    - link "Wagenpark , opent in een ander tabblad Auto's, onderhoud, schade, brandstof en transport" [ref=f1e109] [cursor=pointer]:
+                      - /url: wagenpark
+                      - generic [ref=f1e116]:
+                        - generic [ref=f1e117]:
+                          - text: Wagenpark
+                          - generic [ref=f1e118]: ", opent in een ander tabblad"
+                        - generic [ref=f1e119]: Auto's, onderhoud, schade, brandstof en transport
+                  - listitem [ref=f1e120]:
+                    - link "FlowWise , opent in een ander tabblad Processen en hun acties" [ref=f1e121] [cursor=pointer]:
+                      - /url: flowwise
+                      - generic [ref=f1e128]:
+                        - generic [ref=f1e129]:
+                          - text: FlowWise
+                          - generic [ref=f1e130]: ", opent in een ander tabblad"
+                        - generic [ref=f1e131]: Processen en hun acties
+                  - listitem [ref=f1e132]:
+                    - 'link "DocWise , opent in een ander tabblad Documenten: kenmerken, toevoegen en toewijzen" [ref=f1e133] [cursor=pointer]':
+                      - /url: docwise
+                      - generic [ref=f1e139]:
+                        - generic [ref=f1e140]:
+                          - text: DocWise
+                          - generic [ref=f1e141]: ", opent in een ander tabblad"
+                        - generic [ref=f1e142]: "Documenten: kenmerken, toevoegen en toewijzen"
+                  - listitem [ref=f1e143]:
+                    - link "Management , opent in een ander tabblad Overzichten en managementinformatie" [ref=f1e144] [cursor=pointer]:
+                      - /url: management
+                      - generic [ref=f1e150]:
+                        - generic [ref=f1e151]:
+                          - text: Management
+                          - generic [ref=f1e152]: ", opent in een ander tabblad"
+                        - generic [ref=f1e153]: Overzichten en managementinformatie
+                  - listitem [ref=f1e154]:
+                    - link "CRM , opent in een ander tabblad Relaties, kenmerken en activiteiten" [ref=f1e155] [cursor=pointer]:
+                      - /url: crm
+                      - generic [ref=f1e162]:
+                        - generic [ref=f1e163]:
+                          - text: CRM
+                          - generic [ref=f1e164]: ", opent in een ander tabblad"
+                        - generic [ref=f1e165]: Relaties, kenmerken en activiteiten
+                  - listitem [ref=f1e166]:
+                    - link "Overige , opent in een ander tabblad CarWise Scheduler en importeren" [ref=f1e167] [cursor=pointer]:
+                      - /url: overige
+                      - generic [ref=f1e172]:
+                        - generic [ref=f1e173]:
+                          - text: Overige
+                          - generic [ref=f1e174]: ", opent in een ander tabblad"
+                        - generic [ref=f1e175]: CarWise Scheduler en importeren
+                  - listitem [ref=f1e176]:
+                    - link "Rapporten , opent in een ander tabblad Rapporten ontwerpen en onderhouden" [ref=f1e177] [cursor=pointer]:
+                      - /url: rapporten/onderhouden
+                      - generic [ref=f1e182]:
+                        - generic [ref=f1e183]:
+                          - text: Rapporten
+                          - generic [ref=f1e184]: ", opent in een ander tabblad"
+                        - generic [ref=f1e185]: Rapporten ontwerpen en onderhouden
+                  - listitem [ref=f1e186]:
+                    - link "Dashboards , opent in een ander tabblad Dashboards ontwerpen en onderhouden" [ref=f1e187] [cursor=pointer]:
+                      - /url: dashboards/onderhouden
+                      - generic [ref=f1e192]:
+                        - generic [ref=f1e193]:
+                          - text: Dashboards
+                          - generic [ref=f1e194]: ", opent in een ander tabblad"
+                        - generic [ref=f1e195]: Dashboards ontwerpen en onderhouden
+                  - listitem [ref=f1e196]:
+                    - link "Playground , opent in een ander tabblad Voorbeelden van de UI-componenten" [ref=f1e197] [cursor=pointer]:
+                      - /url: playground
+                      - generic [ref=f1e203]:
+                        - generic [ref=f1e204]:
+                          - text: Playground
+                          - generic [ref=f1e205]: ", opent in een ander tabblad"
+                        - generic [ref=f1e206]: Voorbeelden van de UI-componenten
