@@ -8,9 +8,9 @@ Feature: RentWise rental agreement tablet signing
     Given CW2 is started and logged in as user MARTIN in administration CW2
     #And the window "CW2 - Hoofdmenu" is open and maximized on the primary screen
 
-  Scenario: 01. Navigate to RentWise Activiteiten
-    When I navigate to RentWise Activiteiten in the modules
-    Then the window RentWise · Algemeen is shown
+  Scenario: 01. Navigate to and verify RentWise Verhuuractiviteiten
+    When I navigate to RentWise in the modules
+    Then the window heading RentWise · Algemeen is shown
     When I open Verhuuractiviteiten in the main menu
     Then the following items are shown in the sub menu:
       | Categorie                |
@@ -33,9 +33,9 @@ Feature: RentWise rental agreement tablet signing
     # And I fill in these remaining fields: (these fields are not fillable yet)
     #  | Telefoon  | Mobiel    | Email                   |
     #  | 123456789 | 987654321 | mbu_debiteur@carwise.nl |
-    When I fill in these remaining fields:
-      | Huurder  | Datum opvolging | Datum/tijd vertrek | Datum/tijd retour | Categorie | Kenteken | Te rijden kilometers | Aanbetaling | Waarborg | Opmerking | Soort | Eenheid |
-      | DEBITEUR | 20-11-2026      | 20-11-2026 16:24   | 20-12-2026 16:00  | A         | G-108-DV | 250                  | 10000       | 5000     | opmerking | SL    | MAAND20 |
+    When I fill in these remaining quotation fields:
+      | Huurder  | Datum opvolging | Datum/tijd vertrek | Datum/tijd retour | Categorie | Te rijden kilometers | Aanbetaling | Waarborg | Opmerking | Soort | Eenheid |
+      | DEBITEUR | 20-11-2026      | 20-11-2026 16:24   | 20-12-2026 16:00  | A         | 250                  | 10000       | 5000     | opmerking | SL    | MAAND20 |
     And I click on button Opslaan
     Then the new quotation has been given a number
     When I click on button OK
@@ -47,13 +47,15 @@ Feature: RentWise rental agreement tablet signing
     Given I have navigated to Beschikbare auto's in the sub menu of Verhuuractiviteiten
     Then the label Beschikbare auto's is present
     When I select the first vehicle
-    And I make a new reservation
+    And I click on button Nieuwe reservering
+    And I click on tab Algemeen
+    And I fill in the Medewerker field with CARW
     And I click on tab Huurder / debiteur
     And I fill in the Huurder field with DEBITEUR
     And I click on tab Voorwaarden
     And I fill in these fields in the Voorwaarden tab:
-      | Soort | Eenheid |
-      | SL    | MAAND20 |
+      | Soort |
+      | SL    |
     And I click on button Toepassen
     And I click on button Nee
     And I click on button Opslaan

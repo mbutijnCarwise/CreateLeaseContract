@@ -10,4 +10,4 @@ Feature: Bedrijfsparameters
   @bedrijfsparameters
   Scenario: 01. Manage bedrijfsparameters
     When I navigate to Bedrijfsparameters in the modules
-    Then the window Bedrijfsparameters is shown
+    Then the window heading Bedrijfsparameters · Parameters is shown

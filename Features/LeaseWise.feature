@@ -18,9 +18,11 @@ Feature: CW2 lease contract without down payment up to "Definitieve auto inzette
   @createLeaseContractWithoutDownPayment
   Scenario Outline: 01. Lease quotation to contract with action Definitieve auto inzetten/Investering boeken
     # Quotation
-    When I navigate to LeaseWise Activiteiten in the modules
-    Then the window LeaseWise · Algemeen is shown
-    # When I open "Leaseoffertes" in navigation group "Offerte"
+    When I navigate to LeaseWise in the modules
+    Then the window heading LeaseWise · Algemeen is shown
+    When I close Algemeen
+    And I open Activiteiten -> Leaseoffertes in the main menu
+    Then the label Leaseoffertes is present
     # And I click "Nieuw" in the toolbar
     # Then the window "CW2 - Leaseofferte" is shown with title "Nieuwe offerte"
     # When I fill in Contractant name "<debtor>" and press Tab

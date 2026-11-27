@@ -13,6 +13,7 @@ public sealed class StepDefinitionsRentWise
     private IPage _page => _activePage.Page;
     private Quotation _quotation = null!;
     private Reservation _reservation = null!;
+    private string _huurder = "mbu_debiteur";
 
     public StepDefinitionsRentWise(ActivePage page)
     {
@@ -24,20 +25,55 @@ public sealed class StepDefinitionsRentWise
     {
         _activePage.Page = await _page.RunAndWaitForPopupAsync(() => _page.GetByRole(AriaRole.Link, new() { Name = "RentWise" }).ClickAsync());
 
-        await NavigationActions.OpenInNavigation(_page, "Verhuuractiviteiten");
-        await _page.GetByRole(AriaRole.Button, new() { Name = subItem, Exact = true }).First.ClickAsync();
+        // Tariff messages ("Tariefsoort" question, "Tarief: Geen geldig tarief gevonden") can pop up at unpredictable
+        // moments and block every further click. Playwright runs this handler before an action whenever one is visible.
+        Regex answer = new("^(Ja|Yes|OK)$");
+        ILocator tariefDialog = _page.Locator("dxbl-modal-dialog")
+            .Filter(new() { HasTextRegex = new Regex("tarief", RegexOptions.IgnoreCase) })
+            .Filter(new() { Has = _page.GetByRole(AriaRole.Button, new() { NameRegex = answer }) });
+        await _page.AddLocatorHandlerAsync(tariefDialog.First, async dialog =>
+        {
+            ILocator button = dialog.GetByRole(AriaRole.Button, new() { NameRegex = answer }).First;
+            TestContext.Out.WriteLine($"Answering {(await button.InnerTextAsync()).Trim()}: {(await dialog.InnerTextAsync()).Trim()}");
+            await button.ClickAsync();
+        }, new() { NoWaitAfter = true });
+
+        // Right after the RentWise tab opens, the server may not handle the menu click yet, so the click can be lost.
+        // Click again until the sub menu item appears.
+        ILocator menuItem = _page.GetByRole(AriaRole.Navigation).GetByText("Verhuuractiviteiten", new() { Exact = true }).First;
+        ILocator subMenuItem = _page.GetByRole(AriaRole.Button, new() { Name = subItem, Exact = true }).First;
+        const int maxAttempts = 5;
+        for (int attempt = 1; ; attempt++)
+        {
+            try
+            {
+                await menuItem.ClickAsync(new() { Timeout = 10000 });
+                await Assertions.Expect(subMenuItem).ToBeVisibleAsync(new() { Timeout = 5000 });
+                break;
+            }
+            catch (Exception ex) when (ex is PlaywrightException or TimeoutException)
+            {
+                if (attempt == maxAttempts)
+                {
+                    string screenshot = Path.Combine(TestContext.CurrentContext.WorkDirectory, $"navigation-stuck-{DateTime.Now:HHmmss}.png");
+                    await _page.ScreenshotAsync(new() { Path = screenshot, FullPage = true });
+                    TestContext.AddTestAttachment(screenshot, "Page when the sub menu item did not appear");
+                    TestContext.Out.WriteLine($"Screenshot: {screenshot}");
+                    TestContext.Out.WriteLine(await _page.Locator("body").AriaSnapshotAsync());
+                    throw;
+                }
+                TestContext.Out.WriteLine($"Sub menu item '{subItem}' not shown after opening Verhuuractiviteiten (attempt {attempt}); trying again.");
+            }
+        }
+        await subMenuItem.ClickAsync();
     }
 
     [When("I click on button (.*)")]
     public async Task ClickOnToevoegen(string buttonName)
     {
-        await _page.GetByRole(AriaRole.Button, new() { Name = buttonName, Exact = true }).First.ClickAsync();
-    }
-
-    [When("I make a new reservation")]
-    public async Task MakeNewReservation()
-    {
-        await _page.GetByRole(AriaRole.Button, new() { Name = "Nieuwe reservering", Exact = true }).First.ClickAsync();
+        // Use the visible button: hidden copies (e.g. on tabs that are open in the background) can come first.
+        await _page.GetByRole(AriaRole.Button, new() { Name = buttonName, Exact = true })
+            .Filter(new() { Visible = true }).First.ClickAsync();
     }
 
     [When("I click on tab (.*)")]
@@ -47,35 +83,24 @@ public sealed class StepDefinitionsRentWise
     }
 
     /// <summary>
-    /// Closes every DevExpress message box (e.g. "Tarief: Geen geldig tarief gevonden") that appears within
-    /// <paramref name="timeoutMs"/>. The application can show only one at a time: when a second one is requested
-    /// while the first is open, it is never shown and the server waits for it forever, which later blocks Opslaan.
-    /// So call this after every field that can trigger such a message, before touching the next one.
-    /// The message normally appears within 250 ms, so <paramref name="timeoutMs"/> leaves about twice that as margin.
+    /// Lets the registered tariff handler close a pending message before the next field is changed.
     /// </summary>
     private async Task CloseMessageDialogsAsync(int timeoutMs = 500)
     {
-        ILocator okButton = _page.Locator("dxbl-modal-dialog").GetByRole(AriaRole.Button, new() { Name = "OK", Exact = true });
-
-        while (true)
+        ILocator dialog = _page.Locator("dxbl-modal-dialog")
+            .Filter(new() { HasTextRegex = new Regex("tarief", RegexOptions.IgnoreCase) }).First;
+        try
         {
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            try
-            {
-                await okButton.First.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeoutMs });
-            }
-            catch (TimeoutException)
-            {
-                return;
-            }
-
-            TestContext.Out.WriteLine($"Closing message after {stopwatch.ElapsedMilliseconds} ms: {(await _page.Locator("dxbl-modal-dialog").First.InnerTextAsync()).Trim()}");
-            await okButton.First.ClickAsync();
-            await okButton.First.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
+            await dialog.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeoutMs });
         }
+        catch (TimeoutException)
+        {
+            return;
+        }
+        await Assertions.Expect(dialog).ToBeHiddenAsync();
     }
 
-    [When("I fill in these remaining fields:")] // todo: specify in binding that this method is only for the quotation fields
+    [When("I fill in these remaining quotation fields:")]
     public async Task FillInTheseFields(Table table)
     {
         Assert.That(table.Rows, Has.Count.EqualTo(1), "Expected one quotation data row.");
@@ -86,8 +111,8 @@ public sealed class StepDefinitionsRentWise
             columns["Datum opvolging"],
             columns["Datum/tijd vertrek"],
             columns["Datum/tijd retour"],
-            columns["Categorie"],
-            columns["Kenteken"],
+            Enum.Parse<Categorie>(columns["Categorie"], true),
+            "",
             int.Parse(columns["Te rijden kilometers"], CultureInfo.InvariantCulture),
             decimal.Parse(columns["Aanbetaling"], CultureInfo.InvariantCulture),
             decimal.Parse(columns["Waarborg"], CultureInfo.InvariantCulture),
@@ -101,8 +126,7 @@ public sealed class StepDefinitionsRentWise
             ("Datum opvolging", _quotation.DatumOpvolging),
             ("Datum/tijd vertrek", _quotation.DatumTijdVertrek),
             ("Datum/tijd retour", _quotation.DatumTijdRetour),
-            ("Categorie", _quotation.Categorie),
-            ("Kenteken", _quotation.Kenteken),
+            ("Categorie", _quotation.Categorie.ToString()),
             ("Te rijden kilometers", _quotation.TeRijdenKilometers.ToString(CultureInfo.InvariantCulture)),
             ("Aanbetaling", _quotation.Aanbetaling.ToString(CultureInfo.InvariantCulture)),
             ("Waarborg", _quotation.Waarborg.ToString(CultureInfo.InvariantCulture)),
@@ -133,7 +157,40 @@ public sealed class StepDefinitionsRentWise
                 await FillAndLeaveAsync(field, value, mayShowMessage);
             }
         }
+
+        ILocator kentekenField = _page.GetByLabel("Kenteken", new() { Exact = true })
+            .Filter(new() { Visible = true }).First;
+        _quotation.Kenteken = await SelectFirstKentekenOptionAsync(kentekenField);
     }
+
+    private async Task<string> SelectFirstKentekenOptionAsync(ILocator field)
+    {
+        await field.FillAsync("");
+        if (await field.GetAttributeAsync("aria-expanded") != "true")
+        {
+            await field.Locator("xpath=ancestor::dxbl-combo-box[1]")
+                .GetByRole(AriaRole.Button, new() { Name = "Keuzelijst openen of sluiten", Exact = true })
+                .ClickAsync();
+        }
+        await Assertions.Expect(field).ToHaveAttributeAsync("aria-expanded", "true");
+
+        string? dropdownId = await field.GetAttributeAsync("aria-controls");
+        Assert.That(dropdownId, Is.Not.Null.And.Not.Empty, "Kenteken must reference its dropdown.");
+        ILocator option = _page.Locator($"[id='{dropdownId}']")
+            .GetByRole(AriaRole.Option, new() { NameRegex = KentekenOptionPattern })
+            .Filter(new() { Visible = true }).First;
+        await option.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+
+        string kenteken = (await option.InnerTextAsync()).Trim();
+        await option.ClickAsync();
+        await field.PressAsync("Tab");
+        await CloseMessageDialogsAsync();
+        await Assertions.Expect(field).ToHaveValueAsync(kenteken);
+        return kenteken;
+    }
+
+    private static readonly Regex KentekenOptionPattern = new(
+        @"^(?=[A-Z0-9-]*[A-Z])(?=[A-Z0-9-]*[0-9])[A-Z0-9]+(?:-[A-Z0-9]+)+$");
 
     [When("I fill in these fields in the Voorwaarden tab:")]
     public async Task FillInFieldsInVoorwaardenTab(Table table)
@@ -141,15 +198,50 @@ public sealed class StepDefinitionsRentWise
         Assert.That(table.Rows, Has.Count.EqualTo(1), "Expected one Voorwaarden data row.");
         var row = table.Rows[0];
 
+        // The inputs have an aria-label that includes the section ("Basis Soort", "Verlenging Soort"),
+        // which overrides the visible "Soort"/"Eenheid" label.
         ILocator soort = _page.GetByLabel("Basis Soort", new() { Exact = true });
-        await soort.ClickAsync();
-        await FillAndLeaveAsync(soort, row["Soort"], true);
-        _reservation.Soort = row["Soort"];
+        await SelectLookupValueAsync(_page, "Basis Soort", row["Soort"]);
+        await CloseMessageDialogsAsync();
 
         ILocator eenheid = _page.GetByLabel("Basis Eenheid", new() { Exact = true });
-        await eenheid.ClickAsync();
-        await FillAndLeaveAsync(eenheid, row["Eenheid"], false);
-        _reservation.Eenheid = row["Eenheid"];
+        string selectedEenheid = await SelectLookupValueAsync(_page, "Basis Eenheid");
+        await CloseMessageDialogsAsync();
+
+        await Assertions.Expect(soort).ToHaveValueAsync(row["Soort"]);
+        await Assertions.Expect(eenheid).ToHaveValueAsync(selectedEenheid);
+        _reservation.Soort = row["Soort"];
+        _reservation.Eenheid = selectedEenheid;
+    }
+
+    internal static async Task<string> SelectLookupValueAsync(IPage page, string label, string? value = null)
+    {
+        ILocator field = page.GetByLabel(label, new() { Exact = true }).Filter(new() { Visible = true });
+        await field.FillAsync("");
+        ILocator button = field.Locator("xpath=ancestor::dxbl-input-editor[1]")
+            .GetByRole(AriaRole.Button, new() { Name = $"Zoeken {label}", Exact = true });
+        string? listId = await button.GetAttributeAsync("aria-controls");
+        Assert.That(listId, Is.Not.Null.And.Not.Empty, $"{label} must reference its lookup list.");
+        await button.ClickAsync();
+
+        ILocator list = page.Locator($"[id='{listId}']");
+        ILocator codeCell = value is not null
+            ? list.GetByRole(AriaRole.Gridcell, new() { Name = value, Exact = true })
+            : list.GetByRole(AriaRole.Row).Locator("td:first-child")
+                .Filter(new() { HasTextRegex = new Regex(@"^\s*(?!\?\s*$)\S+\s*$") }).First;
+        await Assertions.Expect(codeCell).ToBeVisibleAsync();
+        string selectedValue = (await codeCell.InnerTextAsync()).Trim();
+        string description = (await codeCell.Locator("xpath=ancestor::tr[1]")
+            .GetByRole(AriaRole.Gridcell).Nth(1).InnerTextAsync()).Trim();
+        await codeCell.DblClickAsync();
+        await list.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
+        await Assertions.Expect(field).ToHaveValueAsync(selectedValue);
+
+        string? descriptionId = await field.GetAttributeAsync("aria-describedby");
+        Assert.That(descriptionId, Is.Not.Null.And.Not.Empty, $"{label} must reference its resolved description.");
+        await Assertions.Expect(page.Locator($"[id='{descriptionId}']")).ToHaveTextAsync(description);
+        TestContext.Out.WriteLine($"Resolved {label}: {selectedValue} ({description})");
+        return selectedValue;
     }
 
     [When("I select the first vehicle")]
@@ -159,9 +251,24 @@ public sealed class StepDefinitionsRentWise
         ILocator firstVehicle = availableCars.GetByRole(AriaRole.Treegrid)
             .Locator("tbody tr[role='row'][data-visible-index]").First;
 
-        await firstVehicle.Locator("td[data-field='kenteken']").ClickAsync();
-        await Assertions.Expect(availableCars.GetByRole(AriaRole.Button, new() { Name = "Nieuwe reservering", Exact = true }))
-            .ToBeEnabledAsync();
+        ILocator nieuweReservering = availableCars.GetByRole(AriaRole.Button, new() { Name = "Nieuwe reservering", Exact = true });
+
+        // The button is only enabled once the server has handled the row click. When the server is busy
+        // (e.g. still loading the grid) the click can be lost, so click again until the button is enabled.
+        const int maxAttempts = 5;
+        for (int attempt = 1; ; attempt++)
+        {
+            await firstVehicle.Locator("td[data-field='kenteken']").ClickAsync();
+            try
+            {
+                await Assertions.Expect(nieuweReservering).ToBeEnabledAsync(new() { Timeout = 3000 });
+                break;
+            }
+            catch (PlaywrightException) when (attempt < maxAttempts)
+            {
+                TestContext.Out.WriteLine($"'Nieuwe reservering' not enabled after selecting the first vehicle (attempt {attempt}); clicking again.");
+            }
+        }
 
         async Task<string> VehicleValueAsync(string field)
         {
@@ -181,14 +288,15 @@ public sealed class StepDefinitionsRentWise
         if (!Enum.TryParse(fuelText, ignoreCase: true, out Brandstof brandstof) || !Enum.IsDefined(brandstof))
             throw new InvalidOperationException($"Unknown vehicle fuel type: '{fuelText}'.");
 
-        _reservation = new Reservation(categorie, kenteken, autoOmschrijving, brandstof);
+        _reservation = new Reservation("mbu_debiteur", categorie, kenteken, autoOmschrijving, brandstof);
     }
 
-    [When("I fill in the Huurder field with (.*)")]
-    public async Task FillInHuurderField(string huurder)
+    [When("I fill in the (.*) field with (.*)")]
+    public async Task FillInField(string field, string value)
     {
-        IList<ILocator> huurderFields = (IList<ILocator>) await _page.GetByLabel("Huurder", new() { Exact = true }).AllAsync();
-        await FillAndLeaveAsync(huurderFields[1], huurder, true);
+        // Some labels (e.g. Huurder) exist on several tabs; only the one on the opened tab is visible.
+        ILocator input = _page.GetByLabel(field, new() { Exact = true }).Filter(new() { Visible = true }).First;
+        await FillAndLeaveAsync(input, value, true);
     }
 
     // Fields whose change makes the application determine the tariff again (PagePrijsberekeningWaarden),
@@ -268,16 +376,6 @@ public sealed class StepDefinitionsRentWise
         }
     }
 
-    [Then("the label (.*) is present")]
-    public async Task TheLabelIsPresent(string label)
-    {
-        ILocator title = _page.GetByRole(AriaRole.Heading, new() { Name = label, Exact = true });
-        await title.WaitForAsync(new() { State = WaitForSelectorState.Visible });
-
-        string actualTitle = (await title.InnerTextAsync()).Trim();
-        StringAssert.Contains(label, actualTitle);
-    }
-
     [Then("the new quotation has been given a number")]
     public async Task TheNewQuotationHasBeenGivenANumber()
     {
@@ -305,7 +403,7 @@ public sealed class StepDefinitionsRentWise
         }
 
         string nummer = await CellOf("Nummer");
-        string categorie = await CellOf("Categorie");
+        Categorie categorie = Enum.Parse<Categorie>(await CellOf("Categorie"), true);
         string kenteken = await CellOf("Kenteken");
         string huurder = await CellOf("Huurder");
         string vertrek = await CellOf("Vertrek");
@@ -328,6 +426,36 @@ public sealed class StepDefinitionsRentWise
     {
         ILocator row = await FindNewReservationRowAsync();
         Assert.That(await row.CountAsync(), Is.EqualTo(1), "The new reservation row is not visible in the table.");
+
+        // Retrieve the data from the table after it was stored
+        string kenteken = await CellTextAsync(row, "Kenteken");
+        string categorie = await CellTextAsync(row, "Categorie");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(_huurder, Is.EqualTo(_reservation.Huurder).IgnoreCase, "Huurder");
+            Assert.That(kenteken, Is.EqualTo(_reservation.Kenteken), "Kenteken");
+            Assert.That(categorie, Is.EqualTo(_reservation.Categorie.ToString()).IgnoreCase, "Categorie");
+        });
+    }
+
+    /// <summary>
+    /// Returns the text of the cell in <paramref name="row"/> under the column with header <paramref name="header"/>.
+    /// The column position is determined at run time, so reordered or added columns don't break the test.
+    /// </summary>
+    private static async Task<string> CellTextAsync(ILocator row, string header)
+    {
+        ILocator grid = row.Locator("xpath=ancestor::dxbl-grid[1]");
+        ILocator columnHeader = grid.GetByRole(AriaRole.Columnheader, new() { Name = header, Exact = true });
+        // Exactly one header must match, otherwise we can't be sure which column is meant.
+        await Assertions.Expect(columnHeader).ToHaveCountAsync(1);
+
+        // cellIndex counts every cell in the header row, including helper columns, so it matches the row's cells.
+        int cellIndex = await columnHeader.EvaluateAsync<int>("th => th.cellIndex");
+        string? text = await row.EvaluateAsync<string?>("(tr, i) => tr.cells[i]?.innerText ?? null", cellIndex);
+        Assert.That(text, Is.Not.Null, $"Row has no cell at position {cellIndex} for column '{header}'.");
+        TestContext.Out.WriteLine($"Column '{header}' is at position {cellIndex}: '{text!.Trim()}'");
+        return text.Trim();
     }
 
     /// <summary>Filters the Offertes grid on the number of the new quotation and returns its row.</summary>
@@ -349,15 +477,15 @@ public sealed class StepDefinitionsRentWise
 
     private async Task<ILocator> FindNewReservationRowAsync()
     {
-        Assert.That(_reservation.Nummer, Is.Not.Null, "The reservation number was not read after the first save.");
-        string nummer = _reservation.Nummer;
+        Assert.That(_reservation.Kenteken, Is.Not.Null, "The kenteken for this reservation was not read after the first save.");
+        string kenteken = _reservation.Kenteken;
 
-        ILocator filter = _page.GetByLabel("Filter Nummer", new() { Exact = true });
-        await filter.FillAsync(nummer);
+        ILocator filter = _page.GetByLabel("Filter Kenteken", new() { Exact = true });
+        await filter.FillAsync(kenteken);
         await filter.PressAsync("Enter");
 
         ILocator row = _page.GetByRole(AriaRole.Row)
-            .Filter(new() { Has = _page.GetByRole(AriaRole.Gridcell, new() { Name = nummer, Exact = true }) })
+            .Filter(new() { Has = _page.GetByRole(AriaRole.Gridcell, new() { Name = kenteken, Exact = true }) })
             .Filter(new() { Has = _page.GetByRole(AriaRole.Gridcell, new() { Name = _reservation.Kenteken, Exact = true }) });
         await row.WaitForAsync(new() { State = WaitForSelectorState.Visible });
         return row;

@@ -9,8 +9,8 @@
   
   Scenario: 01. Navigate to CRM
     When I navigate to CRM Algemeen in the modules
-    Then the window CRM · Algemeen is shown
+    Then the window heading CRM · Algemeen is shown
     And the following menu items are present
       | Kenmerkgroepen | Kenmerk lijsten | Relatiekenmerken | Actiesoorten | Views | Contactsoorten | Ontvangstwijzen | AVG beheer | Default relaties | KvK SBI codes | Self service soorten | 
     When I open Views in the main menu
-    Then the window Views is shown
+    Then the window heading Views is shown

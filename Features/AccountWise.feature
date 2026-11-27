@@ -9,7 +9,7 @@ Feature: AccountWise
     
   Scenario: 01. Verify AccountWise menu items
     When I navigate to AccountWise in the modules
-    Then the window AccountWise · Algemeen is shown
+    Then the window heading AccountWise · Algemeen is shown
     
   Scenario: 02. Verify AccountWise Debiteuren
     Given I have navigated to Debiteuren in the main menu of AccountWise

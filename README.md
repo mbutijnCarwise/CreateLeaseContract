@@ -16,3 +16,26 @@ The CarWise software is currently a Windows desktop application (CW2) without a 
 ```powershell
 dotnet build
 ```
+
+## Module navigation
+
+`I navigate to LeaseWise Activiteiten in the modules` opens the module, collapses
+`Algemeen`, expands `Activiteiten`, and clicks that group's `Startpagina`.
+The heading then shows `LeaseWise · Activiteiten`. The `Algemeen` suffix opens
+that group's `Startpagina`; without a suffix, the module's default navigation
+state is preserved.
+
+For explicit menu navigation, open the module without a suffix, use
+`I close Algemeen` to collapse that group, then
+`I open Activiteiten -> Leaseoffertes in the main menu`. Each group in the path
+is expanded before the final item is clicked. Closing an already collapsed group
+does not reopen it.
+
+## RentWise reservation conditions
+
+Scenario 03 selects `Basis Soort` from the table and the first valid `Basis Eenheid`
+offered by its lookup list, recording the actual unit in the reservation model.
+Available units depend on the selected vehicle; `MAAND20` is not assumed.
+The test waits for each selected code's resolved description before continuing,
+because resolving Soort can reset Eenheid to a default value. Tariff popups are
+closed only by the registered locator handler, avoiding competing close actions.

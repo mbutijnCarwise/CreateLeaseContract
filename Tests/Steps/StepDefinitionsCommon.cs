@@ -31,24 +31,42 @@ public class StepDefinitionsCommon
     [When(@"I navigate to (.*) in the modules")]
     public async Task NavigateInModules(string moduleName)
     {
+        string? navigationGroup = null;
         if (moduleName.EndsWith(" Activiteiten", StringComparison.Ordinal))
+        {
+            navigationGroup = "Activiteiten";
             moduleName = moduleName[..^" Activiteiten".Length];
+        }
         else if (moduleName.EndsWith(" Algemeen", StringComparison.Ordinal))
+        {
+            navigationGroup = "Algemeen";
             moduleName = moduleName[..^" Algemeen".Length];
-
-        // await _page.GetByRole(AriaRole.Link, new() { Name = moduleName }).ClickAsync();
-
-        // IPage newTab = await _page.RunAndWaitForPopupAsync(() => _page.GetByRole(AriaRole.Link, new() { Name = moduleName }).ClickAsync());
+        }
 
         _activePage.Page = await _page.RunAndWaitForPopupAsync(() => _page.GetByRole(AriaRole.Link, new() { Name = moduleName }).ClickAsync());
-
+        if (navigationGroup is not null)
+            await NavigationActions.OpenGroupAsync(_page, navigationGroup);
     }
+
+    [When("I close (.*)")]
+    public Task CloseWindow(string groupName) =>
+        NavigationActions.CloseInNavigation(_page, groupName);
 
     [When("I open (.*) in the main menu")]
     public Task OpenInNavigation(string item) =>
         NavigationActions.OpenInNavigation(_page, item);
 
-    [Then(@"the window (.*) is shown")]
+    [Then("the label (.*) is present")]
+    public async Task TheLabelIsPresent(string label)
+    {
+        ILocator title = _page.GetByRole(AriaRole.Heading, new() { Name = label, Exact = true });
+        await title.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+
+        string actualTitle = (await title.InnerTextAsync()).Trim();
+        StringAssert.Contains(label, actualTitle);
+    }
+
+    [Then(@"the window heading (.*) is shown")]
     public async Task TheWindowIsShown(string windowName)
     {
         // Web-first assertion: retries until the (new) page heading contains the text,
